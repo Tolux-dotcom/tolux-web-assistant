@@ -33,6 +33,7 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: "gpt-5-mini-2025-08-07",
+        reasoning: { effort: "minimal" },
         input: [
           {
             role: "developer",
@@ -41,7 +42,7 @@ module.exports = async (req, res) => {
           },
           { role: "user", content: message },
         ],
-        max_output_tokens: 350,
+        max_output_tokens: 500,
       }),
     });
 
@@ -51,11 +52,12 @@ module.exports = async (req, res) => {
       return res.status(502).json({ error: "Assistant is temporarily unavailable." });
     }
 
-    const reply =
-      data.output_text ||
-      data.output?.flatMap((item) => item.content || []).find((part) => part.type === "output_text")?.text ||
-      "I’m sorry, I couldn’t answer that right now.";
+    const textParts = data.output
+      ?.flatMap((item) => item.content || [])
+      .map((part) => part.text || part.value || "")
+      .filter(Boolean);
 
+    const reply = data.output_text || textParts?.join("\n") || "I’m sorry, I couldn’t answer that right now.";
     return res.status(200).json({ reply });
   } catch (error) {
     console.error(error);
